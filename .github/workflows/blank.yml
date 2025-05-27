@@ -1,0 +1,44 @@
+name: CI/CD Jobs Glue
+
+on:
+  push:
+    branches: [ "Jobs-Glue" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: pytest tests/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Upload scripts to S3
+        run: |
+          aws s3 cp glue_jobs/download_headlines.py s3://guardar-html/scripts/download_headlines.py
+          aws s3 cp glue_jobs/parse_headlines.py s3://guardar-html/scripts/parse_headlines.py
+
+      # Opcional: Actualizar Glue Job script path (si usas script_location dinámico)
+      - name: Update Glue Jobs using boto3
+        run: python update_glue_jobs.py
