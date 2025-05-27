@@ -1,6 +1,11 @@
-# tests/test_parse.py
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pandas as pd
 from jobs import parse_headlines
+
+# tu código de test aquí...
+
 
 sample_html = """
 <html>

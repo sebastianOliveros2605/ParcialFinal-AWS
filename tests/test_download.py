@@ -1,8 +1,11 @@
 # tests/test_download.py
-
 import boto3
 from moto import mock_s3
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from jobs import download_headlines
+
 
 @mock_s3
 def test_s3_guardado_correctamente():
