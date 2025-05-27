@@ -41,8 +41,8 @@ jobs:
 
       - name: Upload scripts to S3
         run: |
-          aws s3 cp glue_jobs/download_headlines.py s3://guardar-html/scripts-glue/download_headlines.py
-          aws s3 cp glue_jobs/parse_headlines.py s3://guardar-html/scripts-glue/parse_headlines.py
+          aws s3 cp jobs/download_headlines.py s3://guardar-html/scripts-glue/download_headlines.py
+          aws s3 cp jobs/parse_headlines.py s3://guardar-html/scripts-glue/parse_headlines.py
 
       # Opcional: Actualizar Glue Job script path (si usas script_location dinámico)
       - name: Update Glue Jobs using boto3
