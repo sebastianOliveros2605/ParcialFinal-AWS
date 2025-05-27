@@ -46,4 +46,4 @@ jobs:
 
       # Opcional: Actualizar Glue Job script path (si usas script_location dinámico)
       - name: Update Glue Jobs using boto3
-        run: python update_glue_jobs.py
+        run: python deploy/update_jobs.py
