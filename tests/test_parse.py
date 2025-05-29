@@ -11,7 +11,7 @@ from datetime import date
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Importar el módulo que queremos probar DESPUÉS de ajustar el path
-import parse_headlines # type: ignore
+from jobs import parse_headlines # type: ignore
 
 # --- Sample Data para Pruebas ---
 SAMPLE_MAIN_PAGE_HTML_ELTIEMPO = """
