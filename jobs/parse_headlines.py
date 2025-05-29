@@ -145,16 +145,13 @@ def parse_main_page_headlines(main_page_html, paper_key):
             time.sleep(1) # Espera 1 segundo entre cada petición de artículo
             texto_completo = extract_article_text(full_href, paper_config)
             
-            if texto_completo: # Solo añadir si obtuvimos contenido
-                headlines_data.append({
-                    'categoria': categoria,
-                    'titular': title,
-                    'enlace': full_href,
-                    'texto_completo': texto_completo # Nueva columna
-                })
-                processed_urls.add(full_href)
-            else:
-                print(f"Skipping article due to empty content: {full_href}")
+            headlines_data.append({
+                'categoria': categoria,
+                'titular': title,
+                'enlace': full_href,
+                'texto_completo': texto_completo # texto_completo será "" si la extracción falló
+            })
+            processed_urls.add(full_href)
 
     if not headlines_data:
         print(f"Warning: No headlines extracted for {paper_key}. Check selectors and page structure.")
