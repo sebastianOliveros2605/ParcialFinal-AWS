@@ -42,10 +42,6 @@ SAMPLE_ARTICLE_CONTENT_HTML = """
     </div>
 </body></html>
 """
-
-# --- Configuración de ARTICLE_CONFIG para las pruebas ---
-# Los selectores deben coincidir con SAMPLE_ARTICLE_CONTENT_HTML
-# y la estructura base_url debe ser la esperada por get_article_text
 TEST_ARTICLE_CONFIG = {
     'eltiempo': {
         'base_url': 'https://www.eltiempo.com',
@@ -105,13 +101,6 @@ def test_get_article_text_unknown_paper_key():
     """Prueba que devuelve vacío si la clave del periódico no está en ARTICLE_CONFIG."""
     texto = parse_headlines.get_article_text("http://someurl.com/article", "periodico_desconocido")
     assert texto == ""
-
-
-# ----- Pruebas para parse_html -----
-# Para estas pruebas, get_article_text será llamado.
-# Como no estamos mockeando requests.get *dentro* de get_article_text para estas pruebas específicas de parse_html,
-# get_article_text devolverá "" para las URLs de prueba que no existen.
-# Nos enfocamos en que la estructura del DataFrame sea correcta y los campos de la página principal se extraigan.
 
 @patch('parse_headlines.time.sleep', MagicMock()) # Mockear time.sleep para acelerar tests
 def test_parse_html_extracts_main_fields_and_empty_text():
@@ -178,10 +167,3 @@ def test_generate_output_key_format():
     """Prueba la función que genera la clave de S3."""
     key = parse_headlines.generate_output_key('elespectador', fecha=date(2024, 12, 25))
     assert key == "headlines/final/periodico=elespectador/year=2024/month=12/day=25/noticias.csv"
-
-# No estamos probando load_html_from_s3 ni save_dataframe_to_s3 aquí porque interactúan
-# directamente con S3 y requerirían mocks más complejos (moto) o un S3 real.
-# La prueba de main() también sería una prueba de integración.
-
-# Para ejecutar (desde la raíz del proyecto):
-# python -m pytest tests/test_parse_headlines.py
