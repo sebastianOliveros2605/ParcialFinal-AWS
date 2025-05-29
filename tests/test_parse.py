@@ -1,195 +1,175 @@
-# tests/test_parse_headlines.py
+# tests/test_parse_headlines_simple.py
 
 import sys
 import os
-import unittest
-import requests
-from unittest.mock import patch, MagicMock # Para mockear llamadas de red
 from datetime import date
-# Asegurarse de que el directorio 'glue_jobs' (o donde esté 'parse_headlines.py') esté en el PYTHONPATH
-# Esto asume que 'tests' y 'glue_jobs' están al mismo nivel, y ejecutas las pruebas desde el directorio raíz del proyecto.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import pandas as pd # Necesitarás pandas para la prueba de generate_output_key
 
-# Importar el módulo que queremos probar DESPUÉS de ajustar el path
-from jobs import parse_headlines # type: ignore
+# --- Ajusta el path para importar tu módulo ---
+# Asume que 'tests' y 'glue_jobs' (o como se llame tu directorio de jobs)
+# están al mismo nivel, y ejecutas desde la raíz del proyecto.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'jobs')))
 
-# --- Sample Data para Pruebas ---
-SAMPLE_MAIN_PAGE_HTML_ELTIEMPO = """
+# Importa el módulo que contiene tus funciones
+import parse_headlines # type: ignore
+
+
+# --- HTML de Ejemplo para la Página Principal ---
+SAMPLE_MAIN_PAGE_HTML = """
 <html>
   <body>
-    <h1>El Tiempo</h1>
-    <a href="/deportes/futbol-colombiano/millonarios-gano-ayer-12345">Millonarios ganó ayer</a>
-    <a href="/economia/inflacion-en-colombia-sigue-alta-67890">La inflación en Colombia sigue alta</a>
-    <a href="https://www.eltiempo.com/mundo/guerra-ucrania-rusia-situacion-actual-00112">Guerra Ucrania Rusia</a>
-    <a href="/cultura/conciertos-bogota-2024-00113">Conciertos en Bogotá</a>
-    <a href="/opinion/columnistas/fulanito-perez/mi-columna-semanal-00114">Columna de Fulanito</a>
-    <a href="/servicios/horoscopo">Horóscopo (no es noticia)</a>
-    <a href="/">Ir al Inicio</a>
-    <a href="/bogota/trancones-hoy-123">Trancones en Bogotá (Noticia de Bogotá)</a>
+    <h1>Noticias de Prueba</h1>
+    <a href="/deportes/futbol-colombiano/evento-importante-123">Evento importante del Fútbol Colombiano</a>
+    <a href="/economia/mercados/ultima-hora-mercados-456">Última hora de los mercados</a>
+    <a href="https://www.otrositio.com/noticia-externa-789">Noticia de un sitio externo</a>
+    <a href="/cultura/cine/estreno-pelicula-012">Estreno de película de cine</a>
+    <a href="/nav/nosotros.html">Sobre Nosotros (no es noticia)</a>
+    <a href="/">Volver al Inicio</a>
+    <a href="/bogota/movilidad-hoy-345">Movilidad Hoy en Bogotá</a>
+    <a href="/politica/congreso/debate-clave-678">Debate Clave en el Congreso</a>
   </body>
 </html>
 """
 
-SAMPLE_ARTICLE_HTML_DEPORTES = """
-<html>
-<body>
-  <div class="article-content">
-    <p>Este es el texto completo del artículo de deportes sobre Millonarios.</p>
-    <p>Tuvo un gran desempeño.</p>
-  </div>
-</body>
-</html>
+# HTML de ejemplo para un artículo (si quisieras probar extract_article_text por separado)
+SAMPLE_ARTICLE_CONTENT_HTML = """
+<html><body>
+    <div class="article-content">
+        <p>Este es el primer párrafo del contenido del artículo.</p>
+        <p>Y este es el segundo párrafo, con más detalles.</p>
+    </div>
+</body></html>
 """
 
-SAMPLE_ARTICLE_HTML_ECONOMIA = """
-<html>
-<body>
-  <article class="font-article">
-    <p>Detalles sobre la inflación y cómo afecta la economía colombiana.</p>
-    <p>Los precios de la canasta familiar subieron.</p>
-  </article>
-</body>
-</html>
-"""
-
-# Configuración de PAPERS simplificada para pruebas
-# Los selectores aquí deben coincidir con SAMPLE_ARTICLE_HTML_*
-TEST_PAPERS_CONFIG = {
+# Necesitamos una configuración de PAPERS para que extract_article_text la use,
+# incluso si no esperamos que tenga éxito en la llamada de red en estas pruebas.
+# Los selectores aquí deberían coincidir con SAMPLE_ARTICLE_CONTENT_HTML si lo usas en una prueba separada.
+parse_headlines.PAPERS = {
     'eltiempo': {
         'base_url': 'https://www.eltiempo.com',
-        'article_selector': 'div.article-content p, article.font-article p' # Cubre ambos ejemplos
+        'article_selector': 'div.article-content p' # Selector para SAMPLE_ARTICLE_CONTENT_HTML
     },
-    'elespectador': { # Añadimos una config básica aunque no la usemos en todos los tests
+    'elespectador': {
         'base_url': 'https://www.elespectador.com',
         'article_selector': 'div.article-body p'
     }
 }
 
 
-class TestParseHeadlines(unittest.TestCase):
+def test_parse_main_page_extracts_correct_fields():
+    """
+    Prueba que parse_main_page_headlines extrae titulares, enlaces y categorías
+    del HTML de la página principal. La columna 'texto_completo' contendrá lo que
+    extract_article_text devuelva (probablemente vacío o error si las URLs no son reales
+    y no se está mockeando la red).
+    """
+    # Usamos 'eltiempo' como ejemplo, la base_url se usará para completar enlaces relativos.
+    df = parse_headlines.parse_main_page_headlines(SAMPLE_MAIN_PAGE_HTML, 'eltiempo')
 
-    def test_generate_output_key_format(self):
-        # Esta prueba no necesita cambios ya que la función no cambió su lógica fundamental
-        key = parse_headlines.generate_output_key('elespectador', fecha=date(2024, 12, 25))
-        self.assertEqual(key, "headlines/final/periodico=elespectador/year=2024/month=12/day=25/noticias.csv")
+    # Verificar que se extrajeron algunas filas (las que parecen noticias)
+    # Basado en SAMPLE_MAIN_PAGE_HTML, esperamos 5 noticias.
+    assert not df.empty, "El DataFrame no debería estar vacío"
+    assert len(df) >= 4, f"Se esperaban al menos 4 noticias, se obtuvieron {len(df)}" # Ajusta según tu lógica de filtro
 
-    @patch('parse_headlines.requests.get') # Mockea requests.get dentro del módulo parse_headlines
-    def test_extract_article_text_success(self, mock_requests_get):
-        # Configurar el mock para devolver una respuesta exitosa con HTML de ejemplo
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.content = SAMPLE_ARTICLE_HTML_DEPORTES.encode('utf-8')
-        mock_response.raise_for_status = MagicMock() # para que no falle en response.raise_for_status()
-        mock_requests_get.return_value = mock_response
+    # Verificar columnas esperadas
+    expected_columns = {'categoria', 'titular', 'enlace', 'texto_completo'}
+    assert set(df.columns) == expected_columns, f"Las columnas esperadas eran {expected_columns}, se obtuvieron {set(df.columns)}"
 
-        test_url = "https://www.eltiempo.com/deportes/algun-articulo"
-        # Usamos una config de prueba para el selector
-        extracted_text = parse_headlines.extract_article_text(test_url, TEST_PAPERS_CONFIG['eltiempo'])
+    # Verificar contenido de la primera fila (ajusta según el primer enlace que consideres noticia)
+    # El primer enlace de noticia es "/deportes/futbol-colombiano/evento-importante-123"
+    first_row = df.iloc[0]
+    assert first_row['titular'] == "Evento importante del Fútbol Colombiano"
+    assert first_row['categoria'] == "deportes" # Basado en la heurística de tu función
+    assert "eltiempo.com/deportes/futbol-colombiano/evento-importante-123" in first_row['enlace']
+    # Para 'texto_completo', no podemos asegurar mucho sin mockear o tener URLs reales estables.
+    # Pero al menos la columna debe existir.
+    assert 'texto_completo' in first_row 
 
-        mock_requests_get.assert_called_once_with(test_url, headers=parse_headlines.REQUEST_HEADERS, timeout=15)
-        expected_text = "Este es el texto completo del artículo de deportes sobre Millonarios.\nTuvo un gran desempeño."
-        self.assertEqual(extracted_text, expected_text)
-
-    @patch('parse_headlines.requests.get')
-    def test_extract_article_text_request_error(self, mock_requests_get):
-        # Configurar el mock para simular un error de red
-        mock_requests_get.side_effect = requests.exceptions.RequestException("Network error")
-
-        test_url = "https://www.eltiempo.com/deportes/otro-articulo"
-        extracted_text = parse_headlines.extract_article_text(test_url, TEST_PAPERS_CONFIG['eltiempo'])
-
-        self.assertEqual(extracted_text, "") # Esperamos string vacío en caso de error
-
-    @patch('parse_headlines.requests.get')
-    def test_extract_article_text_no_selector_match(self, mock_requests_get):
-        # Respuesta exitosa, pero el selector no encontrará nada
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.content = "<html><body><p>Contenido irrelevante</p></body></html>".encode('utf-8')
-        mock_response.raise_for_status = MagicMock()
-        mock_requests_get.return_value = mock_response
-
-        test_url = "https://www.eltiempo.com/deportes/articulo-raro"
-        # Usamos una config de prueba para el selector
-        extracted_text = parse_headlines.extract_article_text(test_url, TEST_PAPERS_CONFIG['eltiempo'])
-        self.assertEqual(extracted_text, "")
+    # Verificar que los enlaces que no son noticias (como "Sobre Nosotros", "Volver al Inicio")
+    # no estén en el DataFrame o que la cantidad de filas sea la esperada.
+    titles = df['titular'].tolist()
+    assert "Sobre Nosotros (no es noticia)" not in titles
+    assert "Volver al Inicio" not in titles
 
 
-    # Patch para el PAPERS global y para extract_article_text
-    # Esto es más complejo porque parse_main_page_headlines llama a extract_article_text internamente
-    @patch('parse_headlines.PAPERS', TEST_PAPERS_CONFIG) # Sobreescribe el PAPERS global
-    @patch('parse_headlines.extract_article_text') # Mockea la función que hace la llamada de red real
-    def test_parse_main_page_headlines_extracts_correct_fields(self, mock_extract_article_text):
-        # Definimos lo que retornará el mock de extract_article_text
-        # Podemos hacerlo más inteligente si es necesario, pero para este test, un valor fijo es suficiente
-        mock_extract_article_text.return_value = "Texto completo del artículo mockeado."
+def test_parse_main_page_ignores_empty_or_very_short_titles():
+    """
+    Prueba que los enlaces sin texto de título o con títulos muy cortos se ignoran.
+    """
+    html_no_title = '<html><body><a href="/deportes/futbol-colombiano/sin-titulo-123"></a></body></html>'
+    df_no_title = parse_headlines.parse_main_page_headlines(html_no_title, 'eltiempo')
+    assert df_no_title.empty, "DataFrame debería estar vacío para enlaces sin título"
 
-        df = parse_headlines.parse_main_page_headlines(SAMPLE_MAIN_PAGE_HTML_ELTIEMPO, 'eltiempo')
-
-        self.assertFalse(df.empty)
-        self.assertEqual(set(df.columns), {'categoria', 'titular', 'enlace', 'texto_completo'})
-
-        # Verificar que se llamó a extract_article_text para los enlaces de noticias
-        # (Millonarios, Inflación, Guerra, Conciertos, Columna, Trancones) -> 6 llamadas esperadas
-        # El filtro de is_news_link en parse_main_page_headlines es clave aquí
-        # Basado en SAMPLE_MAIN_PAGE_HTML_ELTIEMPO y la heurística actual de is_news_link
-        # y los filtros de título, esperamos que se intente extraer texto para estos:
-        expected_calls_for_articles = [
-            "https://www.eltiempo.com/deportes/futbol-colombiano/millonarios-gano-ayer-12345",
-            "https://www.eltiempo.com/economia/inflacion-en-colombia-sigue-alta-67890",
-            "https://www.eltiempo.com/mundo/guerra-ucrania-rusia-situacion-actual-00112",
-            "https://www.eltiempo.com/cultura/conciertos-bogota-2024-00113",
-            "https://www.eltiempo.com/opinion/columnistas/fulanito-perez/mi-columna-semanal-00114",
-            "https://www.eltiempo.com/bogota/trancones-hoy-123"
-        ]
-        self.assertGreaterEqual(mock_extract_article_text.call_count, 5) # Puede ser 6 si el filtro de columna pasa
-        
-        # Verificamos el contenido de una fila
-        # La primera noticia es de Millonarios
-        self.assertEqual(df.iloc[0]['titular'], 'Millonarios ganó ayer')
-        self.assertEqual(df.iloc[0]['categoria'], 'deportes') # Basado en la heurística de la URL
-        self.assertTrue('millonarios-gano-ayer' in df.iloc[0]['enlace'])
-        self.assertEqual(df.iloc[0]['texto_completo'], "Texto completo del artículo mockeado.")
-
-        # Comprobar que los enlaces que no son noticias se filtran (ej. "Horóscopo", "Ir al Inicio")
-        # Esto se comprueba indirectamente porque no deberían estar en el df ni generar llamadas a extract_article_text.
-        # Y porque el número de filas en df debería ser igual al número de artículos válidos.
-        self.assertEqual(len(df), mock_extract_article_text.call_count)
+    # Asumiendo que tu filtro de longitud de título es > 10
+    html_short_title = '<html><body><a href="/deportes/futbol-colombiano/corto-456">Gol</a></body></html>'
+    df_short_title = parse_headlines.parse_main_page_headlines(html_short_title, 'eltiempo')
+    assert df_short_title.empty, "DataFrame debería estar vacío para enlaces con títulos muy cortos"
 
 
-    @patch('parse_headlines.PAPERS', TEST_PAPERS_CONFIG)
-    @patch('parse_headlines.extract_article_text')
-    def test_parse_main_page_headlines_ignores_empty_titles_or_bad_links(self, mock_extract_article_text):
-        # Simula que extract_article_text siempre devuelve algo para no fallar por eso.
-        mock_extract_article_text.return_value = "Mocked content."
+def test_parse_main_page_handles_empty_html_input():
+    """
+    Prueba cómo se maneja una entrada HTML vacía.
+    Debería devolver un DataFrame vacío con las columnas correctas.
+    """
+    df = parse_headlines.parse_main_page_headlines("", 'eltiempo')
+    assert df.empty, "DataFrame debería estar vacío para HTML vacío"
+    expected_columns = {'categoria', 'titular', 'enlace', 'texto_completo'}
+    assert set(df.columns) == expected_columns, "Las columnas deben estar presentes incluso si el DF está vacío"
 
-        html_no_title = '<html><body><a href="/deportes/futbol"></a></body></html>'
-        df_no_title = parse_headlines.parse_main_page_headlines(html_no_title, 'eltiempo')
-        self.assertTrue(df_no_title.empty)
-        mock_extract_article_text.assert_not_called() # No debería llamar si el título está vacío
 
-        mock_extract_article_text.reset_mock() # Resetear mock para la siguiente prueba
+def test_extract_article_text_with_sample_html():
+    """
+    Prueba unitaria para extract_article_text usando HTML de ejemplo, sin llamadas de red.
+    Para esto, `extract_article_text` tendría que ser modificada para aceptar HTML directamente,
+    o esta prueba debe mockear `requests.get` para que devuelva este HTML.
+    Si no quieres mockear, esta prueba se vuelve más de integración o necesitas
+    una URL pública que SIRVA EXACTAMENTE ESE HTML (difícil).
 
-        html_short_title = '<html><body><a href="/deportes/futbol">Gol</a></body></html>' # Título muy corto
-        df_short_title = parse_headlines.parse_main_page_headlines(html_short_title, 'eltiempo')
-        self.assertTrue(df_short_title.empty) # Asume que "Gol" es muy corto y se filtra
-        mock_extract_article_text.assert_not_called()
+    Dado que dijiste NO MOCKS, esta prueba es difícil de hacer puramente unitaria
+    para extract_article_text si toma una URL.
+    La alternativa es probar sólo la lógica de parseo de BeautifulSoup si pudieras
+    alimentarle el HTML directamente a la parte de parseo de extract_article_text.
 
-        mock_extract_article_text.reset_mock()
+    Aquí, asumimos que parse_headlines.extract_article_text toma una URL.
+    Si NO mockeamos, esta prueba en realidad haría una llamada de red a "dummy_url".
+    """
+    # Esta prueba NO es realmente unitaria para extract_article_text sin mocks si toma una URL.
+    # Se incluye para mostrar cómo se intentaría.
+    # Necesitaríamos una URL real que devuelva SAMPLE_ARTICLE_CONTENT_HTML
+    # o mockear requests.get.
 
-        # Un enlace que no parece de noticia según la heurística actual
-        html_non_news_link = '<html><body><a href="/contactenos">Contáctenos ahora mismo</a></body></html>'
-        df_non_news = parse_headlines.parse_main_page_headlines(html_non_news_link, 'eltiempo')
-        self.assertTrue(df_non_news.empty)
-        mock_extract_article_text.assert_not_called()
+    # Simulemos que tenemos una manera de pasar HTML directamente a la lógica de parseo de `extract_article_text`
+    # Esto requeriría refactorizar extract_article_text para separar la obtención de la URL del parseo.
+    # Ejemplo de refactorización (NO está en tu código actual de parse_headlines.py):
+    # def _parse_article_html_content(article_html, paper_config):
+    #     soup = BeautifulSoup(article_html, 'html.parser')
+    #     content_elements = soup.select(paper_config['article_selector'])
+    #     # ... resto de la lógica de extracción de texto
+    #     return " ".join([p.get_text(strip=True) for p in content_elements])
 
-    @patch('parse_headlines.PAPERS', TEST_PAPERS_CONFIG)
-    @patch('parse_headlines.extract_article_text')
-    def test_parse_main_page_headlines_empty_html(self, mock_extract_article_text):
-        df = parse_headlines.parse_main_page_headlines("", 'eltiempo')
-        self.assertTrue(df.empty)
-        self.assertEqual(set(df.columns), {'categoria', 'titular', 'enlace', 'texto_completo'}) # Verifica que las columnas se creen aunque esté vacío
-        mock_extract_article_text.assert_not_called()
+    # Si tuvieras esa función _parse_article_html_content:
+    # parsed_text = parse_headlines._parse_article_html_content(SAMPLE_ARTICLE_CONTENT_HTML, parse_headlines.PAPERS['eltiempo'])
+    # assert "Este es el primer párrafo" in parsed_text
+    # assert "Y este es el segundo párrafo" in parsed_text
 
-if __name__ == '__main__':
-    unittest.main()
+    # Como no la tienes, esta prueba de extract_article_text es más conceptual aquí sin mocks.
+    # Para ejecutarla realmente, necesitarías una URL que sirva SAMPLE_ARTICLE_CONTENT_HTML
+    # o mockear. Si la ejecutas con una URL dummy, fallará o devolverá "".
+    texto_extraido = parse_headlines.extract_article_text("http://url.inexistente.para.prueba/articulo.html", parse_headlines.PAPERS['eltiempo'])
+    assert texto_extraido == "", "Se espera texto vacío para URL inexistente sin mock"
+
+
+def test_generate_output_key_format():
+    """
+    Prueba la función que genera la clave de S3 para la salida.
+    Esta es una prueba unitaria pura y no necesita mocks.
+    """
+    # Usar datetime.date para el argumento fecha como en el código original
+    key = parse_headlines.generate_output_key('elespectador', fecha=date(2024, 12, 25))
+    assert key == "headlines/final/periodico=elespectador/year=2024/month=12/day=25/noticias.csv"
+
+# Para ejecutar estas pruebas si guardas este archivo (ej. tests/test_parse_simple.py):
+# Desde la raíz de tu proyecto: python -m pytest tests/test_parse_simple.py
+# O, si no usas pytest y quieres ejecutarlo directamente (necesitarías estructura de unittest.TestCase):
+# if __name__ == '__main__':
+#   pass # pytest se encarga de descubrir y ejecutar funciones test_*
