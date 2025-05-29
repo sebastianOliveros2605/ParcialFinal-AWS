@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock # Para mockear llamadas de red
 from datetime import date
 # Asegurarse de que el directorio 'glue_jobs' (o donde esté 'parse_headlines.py') esté en el PYTHONPATH
 # Esto asume que 'tests' y 'glue_jobs' están al mismo nivel, y ejecutas las pruebas desde el directorio raíz del proyecto.
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'glue_jobs')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Importar el módulo que queremos probar DESPUÉS de ajustar el path
 import parse_headlines # type: ignore
