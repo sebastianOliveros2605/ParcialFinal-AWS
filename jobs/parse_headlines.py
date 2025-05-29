@@ -83,9 +83,10 @@ def parse_html(html_content_main_page, paper_key): # Renombrado el primer argume
             continue
         if not re.search(r'/[a-zA-Z0-9-]+(?:/\d{4,}|/[a-zA-Z0-9-]+)', href): # Patrón de URL de noticia
             continue
-        if any(nav_path in href for nav_path in ['/navegacion/', '/servicios/', '/horoscopo/']): # Excluir paths de no-noticias
+        EXCLUDE_URL_PATHS = ['/navegacion/', '/servicios/', '/horoscopo/', '/nav/'] # <--- Añadido '/nav/'
+        if any(excluded_path in href.lower() for excluded_path in EXCLUDE_URL_PATHS):
+            print(f"Skipping non-news link based on URL path: {href}")
             continue
-
         # Construir URL completa para el artículo
         article_full_url = href
         if not href.startswith('http'):

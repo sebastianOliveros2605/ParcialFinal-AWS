@@ -10,7 +10,7 @@ from unittest.mock import patch, MagicMock # Seguiremos necesitando mock para re
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'jobs')))
 
 import parse_headlines # type: ignore
-
+import requests
 # --- HTML de Ejemplo para la Página Principal ---
 SAMPLE_MAIN_PAGE_HTML_ELTIEMPO = """
 <html>
