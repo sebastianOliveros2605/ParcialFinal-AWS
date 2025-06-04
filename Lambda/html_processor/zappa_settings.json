@@ -1,0 +1,45 @@
+{
+    "dev": {
+        "app_function": "app.handler",
+        "aws_region": "us-east-1",
+        "exclude": [
+            "boto3",
+            "dateutil",
+            "botocore",
+            "s3transfer",
+            "concurrent"
+        ],
+        "profile_name": "default",
+        "project_name": "html-processor",
+        "runtime": "python3.9",
+    	"keep_warm":false,
+	    "role_name":"LabRole",
+	    "apigateway_enabled":false,
+	    "manage_roles":false,
+        "s3_bucket": "zappa-vw6u0ig2l",
+        "events": [{
+          "event_source": {
+            "arn":  "arn:aws:s3:::newste",
+            "events": [
+              "s3:ObjectCreated:*"
+            ],
+            "filters": {
+              "Key": {
+                "FilterRules": [
+                  {
+                    "Name": "prefix",
+                    "Value": "headlines/raw/"
+                  },
+                  {
+                    "Name": "suffix",
+                    "Value": ".html"
+                  }
+                ]
+              }
+            }
+          },
+          "function": "app.handler"
+        }]
+
+    }
+}

@@ -1,0 +1,21 @@
+{
+    "dev": {
+        "app_function": "app.handler",
+        "aws_region": "us-east-1",
+        "exclude": [
+            "boto3",
+            "dateutil",
+            "botocore",
+            "s3transfer",
+            "concurrent"
+        ],
+        "profile_name": "default",
+        "project_name": "crawler-trigger",
+        "runtime": "python3.9",
+    	"keep_warm":false,
+	    "role_name":"LabRole",
+	    "apigateway_enabled":false,
+	    "manage_roles":false,
+        "s3_bucket": "zappa-k7pu947zc"
+    }
+}

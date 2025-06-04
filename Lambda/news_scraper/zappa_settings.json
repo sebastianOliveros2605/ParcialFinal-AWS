@@ -1,0 +1,25 @@
+{
+    "dev": {
+        "app_function": "app.handler",
+        "aws_region": "us-east-1",
+        "exclude": [
+            "boto3",
+            "dateutil",
+            "botocore",
+            "s3transfer",
+            "concurrent"
+        ],
+        "profile_name": "default",
+        "project_name": "news-scraper",
+        "runtime": "python3.9",
+    	"keep_warm":false,
+	    "role_name":"LabRole",
+	    "apigateway_enabled":false,
+	    "manage_roles":false,
+        "s3_bucket": "zappa-6kcu3423s",
+        "events": [{
+            "function": "app.handler",
+            "expression": "rate(1 day)"
+        }]
+    }
+}
