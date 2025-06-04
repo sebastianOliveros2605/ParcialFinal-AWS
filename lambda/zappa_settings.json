@@ -1,0 +1,32 @@
+{
+    "dev": { // Nombre de tu entorno/stage (ej. dev, staging, prod)
+        "app_function": "app.launch_emr_job", // Ruta a tu función: nombre_archivo.nombre_funcion
+        "project_name": "lambda", // Nombre de tu proyecto Zappa
+        "runtime": "python3.9", // O la versión de Python que uses (ej. 3.8, 3.10, 3.11)
+        "s3_bucket": "zappa-dvlfvnh25", // Bucket S3 que Zappa usa para empaquetar
+        "aws_region": "us-east-1", // ej. "us-east-1"
+        "role_name": "LabRole", // El nombre del rol IAM que Zappa creará/usará
+        "timeout_seconds": 120, // Timeout para la Lambda (lanzar EMR es rápido)
+        "memory_size": 128, // Memoria para la Lambda (no necesita mucho)
+        "environment_variables": {
+            "EMR_RELEASE_LABEL": "emr-6.15.0",
+            "MASTER_INSTANCE_TYPE": "m5.xlarge",
+            "CORE_INSTANCE_TYPE": "m5.xlarge",
+            "CORE_INSTANCE_COUNT": "2",
+            "EMR_SERVICE_ROLE": "EMR_DefaultRole", // Rol de servicio EMR
+            "EMR_EC2_INSTANCE_PROFILE_ROLE_NAME": "EMR_EC2_DefaultRole", // Nombre del perfil de instancia EC2
+            "S3_BUCKET_LOGS_EMR": "s3://aws-emr-studio-302119430275-us-east-1", // Reemplaza
+            "S3_BUCKET_SCRIPTS_EMR": "s3://resulta2-emr", // Reemplaza
+            "EMR_SUBNET_ID": "subnet-000482b7d26184448" // Reemplaza
+            // "TZ": "America/Bogota" // Opcional: Si necesitas una zona horaria específica
+        },
+        // (Opcional) Si quieres que Zappa gestione los eventos (ej. un cron)
+        // "events": [{
+        //     "function": "app.launch_emr_job",
+        //     "expression": "cron(0 12 * * ? *)" // Ejemplo: Ejecutar todos los días a las 12:00 PM UTC
+        // }],
+        "manage_roles": false, // Permite a Zappa crear/actualizar el rol IAM. Si es 'false', debes crearlo tú.
+        "keep_warm": false,
+        "apigateway_enabled": false
+    }
+}
